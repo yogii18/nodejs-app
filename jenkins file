@@ -25,7 +25,7 @@ pipeline{
         
         stage('PM2 Start'){
             steps{
-                sh 'pm2 start app.js'
+                sh 'pm2 start ecosystemconfig.js'
             }
         }
 
