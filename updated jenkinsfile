@@ -1,0 +1,62 @@
+pipeline{
+agent any
+ 
+ tools {nodejs "node"}   
+ 
+    environment {
+      aws_profile = "yogita_test"
+      pipeline_name = "nodejsapp"
+      environments = "development"
+    }
+    
+    parameters {
+        gitParameter branchFilter: 'origin/(.*)', defaultValue: 'main', name: 'branch', type: 'PT_BRANCH'
+        //type means it will give you all the branches name present in the repo
+    }
+    
+    
+    stages {
+        
+        stage('Preparation'){
+            steps{
+                 script{
+                    try{
+                       
+                         sh 'rm -rf *'
+                         sh """
+                         export AWS_PROFILE=${env.aws_profile}
+                         aws s3 cp s3://nodejsapp-demo/${env.pipeline_name}/${env.environments}.groovy ${env.environments}}.groovy 
+                         """
+                    }
+                    catch(Exception e){
+                         echo "FAILED ${e}"
+                         throw e
+                     }
+                 }
+            }
+        }
+        
+        stage('cloning the project'){
+            steps{
+                sh 'pwd'
+                git branch: "${params.branch}", credentialsId: 'test', url: "https://gitlab.com/yogitas_webelight/nodeapp.git"
+                sh 'pwd'
+            }
+        }
+    
+        stage('transfering the code to /var/www'){
+            steps{
+                sh 'cp -R /var/lib/jenkins/workspace/nodejsapp /var/www '
+            }
+        }
+    
+       stage('building the code'){
+         steps{
+               sh 'cd /var/www/nodejsapp'
+               sh 'npm i'
+               sh 'pm2 start ecosystem.config.js'
+        }
+    }     
+        
+    }
+}
